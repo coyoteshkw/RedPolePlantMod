@@ -38,10 +38,41 @@ namespace RedPolePlantMod
             if (sLeaser.sprites != null && sLeaser.sprites.Length > 0)
             {
                 // 将颜色强制设为红色
-                sLeaser.sprites[0].color = Color.red;
+                // sLeaser.sprites[0].color = Color.red;
 
                 // 进阶：如果你想让它在黑暗中发光（无视光照），取消下面这行的注释
                 // sLeaser.sprites[0].shader = rCam.game.rainWorld.Shaders["Basic"];
+
+				// == 方案1: 降低红色颜色
+				// 获取游戏原本计算出的伪装色
+				// Color originalColor = sLeaser.sprites[0].color;
+				
+				// 并不是变成纯红，而是保留 60% 原色，混合 40% 的暗红色
+				// Color.Lerp(颜色A, 颜色B, B的比例 0.0-1.0)
+				// sLeaser.sprites[1].color = Color.Lerp(originalColor, new Color(0.8f, 0.2f, 0.2f), 0.4f);
+
+				// == 方案2: 呼吸灯效果
+				// 计算呼吸因子：产生一个在 0.0 到 0.5 之间循环的数值
+				// Time.time * 3f 控制速度（数字越大呼吸越快）
+				// float pulse = (Mathf.Sin(Time.time * 3f) + 1f) / 4f; 
+
+				// 让它在“原色”和“亮橙色”之间循环
+				// sLeaser.sprites[0].color = Color.Lerp(sLeaser.sprites[0].color, new Color(1f, 0.5f, 0f), pulse);
+
+				// == 方案3: 让叶子变红
+				// 遍历所有 sprite
+				for (int i = 0; i < sLeaser.sprites.Length; i++)
+				{
+					// i == 0 是杆子本体，我们决定不改它，让它完美伪装
+					if (i == 0) continue;
+
+					// i > 0 的通常是杆子上的叶子/倒刺装饰
+					// 把叶子改成鲜艳的“警告色”，比如亮紫色或深红
+					sLeaser.sprites[i].color = new Color(1f, 0.2f, 0.4f); 
+					
+					// 可选：让叶子不受光照影响，像霓虹灯一样亮
+					// sLeaser.sprites[i].shader = rCam.game.rainWorld.Shaders["Basic"];
+				}
             }
         }
     }
