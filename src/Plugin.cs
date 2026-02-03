@@ -1,18 +1,17 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Logging;
 using System.Security.Permissions;
+using UnityEngine;
 
 // Allows access to private members
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618
 
-namespace RedPolePlantMod;
-[BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.0")]
+namespace RedPolePlantMod
 {
-    // BepInEx 插件标识
-    // [BepInPlugin("com.yourname.redmimic", "Red Pole Mimic", "1.0.0")]
-	public class RedMimic : BaseUnityPlugin
+    [BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.0")]
+    public class RedMimic : BaseUnityPlugin
     {
         // OnEnable 相当于 Vue 的 mounted()，在 Mod 加载完成时执行
         public void OnEnable()
@@ -21,15 +20,15 @@ namespace RedPolePlantMod;
             Logger.LogInfo("拟态草高亮 Mod 已加载！");
 
             // 注册钩子 (Hook)
-            // 意思：当游戏要运行 PoleMimic 类的 DrawSprites 方法时，先问问我
-            On.PoleMimic.DrawSprites += PoleMimic_DrawSprites;
+            // 意思：当游戏要运行 PoleMimicGraphics 类的 DrawSprites 方法时，先问问我
+            On.PoleMimicGraphics.DrawSprites += PoleMimicGraphics_DrawSprites;
         }
 
         // 这是我们的自定义逻辑
         // orig: 原始的方法（你可以选择调用它，或者完全屏蔽它）
         // self: 当前这根拟态草的实例（相当于 this）
         // sLeaser: 负责管理图像精灵的容器
-        private void PoleMimic_DrawSprites(On.PoleMimic.orig_DrawSprites orig, PoleMimic self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        private void PoleMimicGraphics_DrawSprites(On.PoleMimicGraphics.orig_DrawSprites orig, PoleMimicGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             // 1. 先让原版游戏把草画出来（计算位置、形状、原本的颜色）
             orig(self, sLeaser, rCam, timeStacker, camPos);
