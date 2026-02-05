@@ -4,6 +4,7 @@ using System.Security.Permissions;
 using UnityEngine;
 using Menu.Remix.MixedUI;
 using RWCustom;
+using System.Collections.Generic;
 
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -61,31 +62,39 @@ namespace RedPolePlantMod
 
             try
             {
-                bool breathing = Options.Breathing.Value;
-                
-                float breathFactor = 1f;
-                if (breathing)
+                if (Options.UseCustomColors.Value)
                 {
-                    breathFactor = (Mathf.Sin(Time.time * 3f) + 1f) * 0.5f * 0.5f + 0.5f; 
-                }
-
-                float poleMix = Options.PoleIntensity.Value / 100f;
-                if (poleMix > 0.01f)
-                {
-                    Color original = sLeaser.sprites[0].color;
-                    Color target = Options.PoleColor.Value;
-                    sLeaser.sprites[0].color = Color.Lerp(original, target, poleMix * breathFactor);
-                }
-
-                float leafMix = Options.LeafIntensity.Value / 100f;
-                if (leafMix > 0.01f && sLeaser.sprites.Length > 1)
-                {
-                    Color leafTarget = Options.LeafColor.Value;
-                    for (int i = 1; i < sLeaser.sprites.Length; i++)
+                    bool breathing = Options.Breathing.Value;
+                    float breathFactor = 1f;
+                    if (breathing)
                     {
-                        Color original = sLeaser.sprites[i].color;
-                        sLeaser.sprites[i].color = Color.Lerp(original, leafTarget, leafMix * breathFactor);
+                        breathFactor = (Mathf.Sin(Time.time * 3f) + 1f) * 0.5f * 0.5f + 0.5f; 
                     }
+
+                    float poleMix = Options.PoleIntensity.Value / 100f;
+                    if (poleMix > 0.01f)
+                    {
+                        Color original = sLeaser.sprites[0].color;
+                        Color target = Options.PoleColor.Value;
+                        sLeaser.sprites[0].color = Color.Lerp(original, target, poleMix * breathFactor);
+                    }
+
+                    float leafMix = Options.LeafIntensity.Value / 100f;
+                    if (leafMix > 0.01f && sLeaser.sprites.Length > 1)
+                    {
+                        Color leafTarget = Options.LeafColor.Value;
+                        for (int i = 1; i < sLeaser.sprites.Length; i++)
+                        {
+                            Color original = sLeaser.sprites[i].color;
+                            sLeaser.sprites[i].color = Color.Lerp(original, leafTarget, leafMix * breathFactor);
+                        }
+                    }
+                }
+                else if (Options.UseSimpleHighlight.Value)
+                {
+                    Color originalColor = sLeaser.sprites[0].color;
+                    Color targetColor = new Color(0.8f, 0.2f, 0.2f);
+                    sLeaser.sprites[0].color = Color.Lerp(originalColor, targetColor, 0.3f);
                 }
             }
             catch (System.Exception) {}
@@ -94,6 +103,9 @@ namespace RedPolePlantMod
 
     public class RedMimicOptions : OptionInterface
     {
+        public readonly Configurable<bool> UseSimpleHighlight;
+        public readonly Configurable<bool> UseCustomColors;
+        
         public readonly Configurable<Color> PoleColor;
         public readonly Configurable<int> PoleIntensity;
         public readonly Configurable<Color> LeafColor;
@@ -101,13 +113,17 @@ namespace RedPolePlantMod
         public readonly Configurable<bool> Breathing;
         
         private ManualLogSource _logger;
+        private List<UIelement> _customColorElements = new List<UIelement>();
+        private OpCheckBox _chkCustom;
 
         public RedMimicOptions(BaseUnityPlugin plugin, ManualLogSource logger)
         {
             _logger = logger;
             _logger.LogInfo("RedMimicOptions: Constructor started.");
             
-            // 默认值
+            UseSimpleHighlight = config.Bind("CfgUseSimpleHighlight", true, new ConfigurableInfo("Enable simple highlight (subtle tint)."));
+            UseCustomColors = config.Bind("CfgUseCustomColors", false, new ConfigurableInfo("Enable advanced custom color configuration."));
+
             PoleColor = config.Bind("CfgPoleColor", new Color(1f, 0.2f, 0.2f), new ConfigurableInfo("Pole Target Color"));
             PoleIntensity = config.Bind("CfgPoleInt", 30, new ConfigurableInfo("Pole Intensity (%)", new ConfigAcceptableRange<int>(0, 100)));
             LeafColor = config.Bind("CfgLeafColor", new Color(1f, 0.2f, 0.6f), new ConfigurableInfo("Leaf Target Color"));
@@ -126,45 +142,71 @@ namespace RedPolePlantMod
                 
                 OpTab opTab = new OpTab(this, "Settings");
                 this.Tabs = new OpTab[] { opTab };
+                
+                _customColorElements.Clear();
 
-                // 简单的布局，防止过于复杂导致渲染失败
                 float leftX = 30f;
                 float rightX = 320f;
                 float topY = 550f;
                 
                 OpLabel title = new OpLabel(leftX, topY, "Red Mimic Configuration", true);
                 
-                OpCheckBox chkBreath = new OpCheckBox(Breathing, new Vector2(leftX, topY - 40));
-                OpLabel lblBreath = new OpLabel(leftX + 30, topY - 40, "Enable Breathing Effect");
+                float modeY = topY - 40f;
+                OpCheckBox chkSimple = new OpCheckBox(UseSimpleHighlight, new Vector2(leftX, modeY));
+                OpLabel lblSimple = new OpLabel(leftX + 30, modeY, "Simple Highlight (Subtle Red Tint)");
+                
+                float customModeY = modeY - 40f;
+                _chkCustom = new OpCheckBox(UseCustomColors, new Vector2(leftX, customModeY));
+                OpLabel lblCustom = new OpLabel(leftX + 30, customModeY, "Advanced Customization (Overrides Simple Highlight)");
 
-                // Pole
-                float poleY = 400f;
+                opTab.AddItems(title, chkSimple, lblSimple, _chkCustom, lblCustom);
+
+                float customY = customModeY - 40f;
+                
+                OpCheckBox chkBreath = new OpCheckBox(Breathing, new Vector2(leftX, customY));
+                OpLabel lblBreath = new OpLabel(leftX + 30, customY, "Enable Breathing Effect");
+                
+                float poleY = customY - 60f;
                 OpLabel lblPoleTitle = new OpLabel(leftX, poleY + 30, "Pole Settings");
                 OpLabel lblPoleColor = new OpLabel(leftX, poleY, "Color:");
                 OpColorPicker pkPole = new OpColorPicker(PoleColor, new Vector2(leftX, poleY - 160));
                 OpLabel lblPoleInt = new OpLabel(leftX, poleY - 190, "Intensity:");
                 OpSlider sldPole = new OpSlider(PoleIntensity, new Vector2(leftX, poleY - 220), 100);
 
-                // Leaf
-                float leafY = 400f;
+                float leafY = customY - 60f;
                 OpLabel lblLeafTitle = new OpLabel(rightX, leafY + 30, "Leaf Settings");
                 OpLabel lblLeafColor = new OpLabel(rightX, leafY, "Color:");
                 OpColorPicker pkLeaf = new OpColorPicker(LeafColor, new Vector2(rightX, leafY - 160));
                 OpLabel lblLeafInt = new OpLabel(rightX, leafY - 190, "Intensity:");
                 OpSlider sldLeaf = new OpSlider(LeafIntensity, new Vector2(rightX, leafY - 220), 100);
 
-                opTab.AddItems(
-                    title,
+                UIelement[] customElements = new UIelement[] {
                     chkBreath, lblBreath,
                     lblPoleTitle, lblPoleColor, pkPole, lblPoleInt, sldPole,
                     lblLeafTitle, lblLeafColor, pkLeaf, lblLeafInt, sldLeaf
-                );
+                };
+                
+                _customColorElements.AddRange(customElements);
+                opTab.AddItems(customElements);
                 
                 _logger.LogInfo("RedMimicOptions: UI Initialize finished.");
             }
             catch (System.Exception ex)
             {
                 _logger.LogError("RedMimicOptions: UI Initialize Failed! " + ex);
+            }
+        }
+
+        public override void Update()
+        {
+            base.Update();
+            if (_chkCustom != null && _customColorElements != null)
+            {
+                bool show = UseCustomColors.Value;
+                foreach (var item in _customColorElements)
+                {
+                    if (show) item.Show(); else item.Hide();
+                }
             }
         }
     }
