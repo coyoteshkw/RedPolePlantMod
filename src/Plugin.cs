@@ -127,10 +127,8 @@ namespace MoreVisiblePolePlants
     {
         public readonly Configurable<bool> UseSimpleHighlight;
         public readonly Configurable<bool> UseCustomColors;
-        
         public readonly Configurable<bool> RainbowPole;
         public readonly Configurable<bool> RainbowLeaves;
-
         public readonly Configurable<Color> PoleColor;
         public readonly Configurable<int> PoleIntensity;
         public readonly Configurable<Color> LeafColor;
@@ -166,7 +164,6 @@ namespace MoreVisiblePolePlants
 
         private string GetText(string original)
         {
-            // Check for Chinese language
             if (RWCustom.Custom.rainWorld.inGameTranslator.currentLanguage == InGameTranslator.LanguageID.Chinese)
             {
                 if (_cn.TryGetValue(original, out string res)) return res;
@@ -177,85 +174,97 @@ namespace MoreVisiblePolePlants
         public RedMimicOptions(BaseUnityPlugin plugin, ManualLogSource logger)
         {
             _logger = logger;
-            _logger.LogInfo("RedMimicOptions: Constructor started.");
-            
             UseSimpleHighlight = config.Bind("CfgUseSimpleHighlight", true, new ConfigurableInfo(GetText("Enable simple highlight (subtle tint).")));
             UseCustomColors = config.Bind("CfgUseCustomColors", false, new ConfigurableInfo(GetText("Enable advanced custom color configuration.")));
-
             RainbowPole = config.Bind("CfgRainbowPole", false, new ConfigurableInfo(GetText("Cycle through RGB colors for the pole.")));
             RainbowLeaves = config.Bind("CfgRainbowLeaves", false, new ConfigurableInfo(GetText("Cycle through RGB colors for the leaves.")));
-
             PoleColor = config.Bind("CfgPoleColor", new Color(1f, 0.2f, 0.2f), new ConfigurableInfo(GetText("Pole Target Color")));
             PoleIntensity = config.Bind("CfgPoleInt", 30, new ConfigurableInfo(GetText("Pole Intensity (%)"), new ConfigAcceptableRange<int>(0, 100)));
             LeafColor = config.Bind("CfgLeafColor", new Color(1f, 0.2f, 0.6f), new ConfigurableInfo(GetText("Leaf Target Color")));
             LeafIntensity = config.Bind("CfgLeafInt", 90, new ConfigurableInfo(GetText("Leaf Intensity (%)"), new ConfigAcceptableRange<int>(0, 100)));
             Breathing = config.Bind("CfgBreath", false, new ConfigurableInfo(GetText("Enable Breathing Effect")));
-            
-            _logger.LogInfo("RedMimicOptions: Constructor finished.");
         }
 
         public override void Initialize()
         {
             try 
             {
-                _logger.LogInfo("RedMimicOptions: Initialize UI started.");
                 base.Initialize();
-                
                 OpTab opTab = new OpTab(this, "Settings");
                 this.Tabs = new OpTab[] { opTab };
 
-                float leftX = 30f;
-                float rightX = 320f;
-                float topY = 550f;
+                // --- Layout Constants ---
+                float margin = 20f;
+                float topY = 560f;
+                float modeY = 520f;
+                float customModeY = 490f;
+                float breathingY = 450f;
                 
-                OpLabel title = new OpLabel(leftX, topY, GetText("Pole Plants Configuration"), true);
+                // Rect Area
+                float rectTop = 410f;
+                float rectHeight = 360f;
+                float colWidth = 270f;
+                float colGap = 20f;
                 
-                float modeY = topY - 40f;
-                OpCheckBox chkSimple = new OpCheckBox(UseSimpleHighlight, new Vector2(leftX, modeY));
-                OpLabel lblSimple = new OpLabel(leftX + 30, modeY, GetText("Simple Highlight (Subtle Red Tint)"));
+                float col1X = margin;
+                float col2X = margin + colWidth + colGap;
+
+                // --- Header ---
+                OpLabel title = new OpLabel(margin, topY, GetText("Pole Plants Configuration"), true);
+
+                // --- Modes ---
+                OpCheckBox chkSimple = new OpCheckBox(UseSimpleHighlight, new Vector2(margin, modeY));
+                OpLabel lblSimple = new OpLabel(margin + 30f, modeY, GetText("Simple Highlight (Subtle Red Tint)"));
                 
-                float customModeY = modeY - 40f;
-                OpCheckBox chkCustom = new OpCheckBox(UseCustomColors, new Vector2(leftX, customModeY));
-                OpLabel lblCustom = new OpLabel(leftX + 30, customModeY, GetText("Advanced Customization (Overrides Simple Highlight)"));
-
-                opTab.AddItems(title, chkSimple, lblSimple, chkCustom, lblCustom);
-
-                float customY = customModeY - 40f;
+                OpCheckBox chkCustom = new OpCheckBox(UseCustomColors, new Vector2(margin, customModeY));
+                OpLabel lblCustom = new OpLabel(margin + 30f, customModeY, GetText("Advanced Customization (Overrides Simple Highlight)"));
                 
-                OpCheckBox chkBreath = new OpCheckBox(Breathing, new Vector2(leftX, customY));
-                OpLabel lblBreath = new OpLabel(leftX + 30, customY, GetText("Enable Breathing Effect"));
+                // --- Breathing ---
+                OpCheckBox chkBreath = new OpCheckBox(Breathing, new Vector2(margin, breathingY));
+                OpLabel lblBreath = new OpLabel(margin + 30f, breathingY, GetText("Enable Breathing Effect"));
+
+                // --- Background Rects ---
+                // Alpha 0.2 for subtle background
+                OpRect rectPole = new OpRect(new Vector2(col1X, rectTop - rectHeight), new Vector2(colWidth, rectHeight), 0.3f); 
+                OpRect rectLeaf = new OpRect(new Vector2(col2X, rectTop - rectHeight), new Vector2(colWidth, rectHeight), 0.3f);
                 
-                // Pole Section
-                float poleY = customY - 60f;
-                OpLabel lblPoleTitle = new OpLabel(leftX, poleY + 30, GetText("Pole Settings"));
+                // --- Column 1: Pole Settings ---
+                // Y offsets relative to rectTop
+                float innerTop = rectTop - 10f; 
                 
-                OpCheckBox chkRainbowPole = new OpCheckBox(RainbowPole, new Vector2(leftX, poleY));
-                OpLabel lblRainbowPole = new OpLabel(leftX + 30, poleY, GetText("RGB Rainbow Mode"));
+                OpLabel lblPoleTitle = new OpLabel(col1X + 10f, innerTop - 30f, GetText("Pole Settings"), true); // Big Text
+                
+                OpCheckBox chkRainbowPole = new OpCheckBox(RainbowPole, new Vector2(col1X + 10f, innerTop - 70f));
+                OpLabel lblRainbowPole = new OpLabel(col1X + 40f, innerTop - 70f, GetText("RGB Rainbow Mode"));
 
-                OpLabel lblPoleColor = new OpLabel(leftX, poleY - 30, GetText("Color (Ignored if Rainbow):"));
-                OpColorPicker pkPole = new OpColorPicker(PoleColor, new Vector2(leftX, poleY - 190));
-                OpLabel lblPoleInt = new OpLabel(leftX, poleY - 220, GetText("Intensity:"));
-                OpSlider sldPole = new OpSlider(PoleIntensity, new Vector2(leftX, poleY - 250), 100);
+                OpLabel lblPoleColor = new OpLabel(col1X + 10f, innerTop - 110f, GetText("Color (Ignored if Rainbow):"));
+                OpColorPicker pkPole = new OpColorPicker(PoleColor, new Vector2(col1X + 10f, innerTop - 270f)); // 150 height
+                
+                OpLabel lblPoleInt = new OpLabel(col1X + 10f, innerTop - 300f, GetText("Intensity:"));
+                OpSlider sldPole = new OpSlider(PoleIntensity, new Vector2(col1X + 10f, innerTop - 330f), (int)(colWidth - 30f)); // Fit width
 
-                // Leaf Section
-                float leafY = customY - 60f;
-                OpLabel lblLeafTitle = new OpLabel(rightX, leafY + 30, GetText("Leaf Settings"));
+                // --- Column 2: Leaf Settings ---
+                OpLabel lblLeafTitle = new OpLabel(col2X + 10f, innerTop - 30f, GetText("Leaf Settings"), true); // Big Text
 
-                OpCheckBox chkRainbowLeaf = new OpCheckBox(RainbowLeaves, new Vector2(rightX, leafY));
-                OpLabel lblRainbowLeaf = new OpLabel(rightX + 30, leafY, GetText("RGB Rainbow Mode"));
+                OpCheckBox chkRainbowLeaf = new OpCheckBox(RainbowLeaves, new Vector2(col2X + 10f, innerTop - 70f));
+                OpLabel lblRainbowLeaf = new OpLabel(col2X + 40f, innerTop - 70f, GetText("RGB Rainbow Mode"));
 
-                OpLabel lblLeafColor = new OpLabel(rightX, leafY - 30, GetText("Color (Ignored if Rainbow):"));
-                OpColorPicker pkLeaf = new OpColorPicker(LeafColor, new Vector2(rightX, leafY - 190));
-                OpLabel lblLeafInt = new OpLabel(rightX, leafY - 220, GetText("Intensity:"));
-                OpSlider sldLeaf = new OpSlider(LeafIntensity, new Vector2(rightX, leafY - 250), 100);
+                OpLabel lblLeafColor = new OpLabel(col2X + 10f, innerTop - 110f, GetText("Color (Ignored if Rainbow):"));
+                OpColorPicker pkLeaf = new OpColorPicker(LeafColor, new Vector2(col2X + 10f, innerTop - 270f));
+                
+                OpLabel lblLeafInt = new OpLabel(col2X + 10f, innerTop - 300f, GetText("Intensity:"));
+                OpSlider sldLeaf = new OpSlider(LeafIntensity, new Vector2(col2X + 10f, innerTop - 330f), (int)(colWidth - 30f));
 
+                // Add Items
                 opTab.AddItems(
+                    title,
+                    chkSimple, lblSimple,
+                    chkCustom, lblCustom,
                     chkBreath, lblBreath,
+                    rectPole, rectLeaf,
                     lblPoleTitle, chkRainbowPole, lblRainbowPole, lblPoleColor, pkPole, lblPoleInt, sldPole,
                     lblLeafTitle, chkRainbowLeaf, lblRainbowLeaf, lblLeafColor, pkLeaf, lblLeafInt, sldLeaf
                 );
-                
-                _logger.LogInfo("RedMimicOptions: UI Initialize finished.");
             }
             catch (System.Exception ex)
             {
