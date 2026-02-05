@@ -1,7 +1,7 @@
 {
     "id": "com.coyoteshkw.RedPolePlantMod",
     "name": "Red Pole Plant Mod",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "authors": "Coyote",
     "description": "Makes Pole Mimics visible and configurable.",
     "requirements": []

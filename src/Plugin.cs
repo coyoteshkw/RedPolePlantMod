@@ -12,7 +12,7 @@ using System.Collections.Generic;
 
 namespace RedPolePlantMod
 {
-    [BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.0")]
+    [BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.1")]
     public class RedMimic : BaseUnityPlugin
     {
         public static RedMimicOptions Options;
@@ -113,8 +113,6 @@ namespace RedPolePlantMod
         public readonly Configurable<bool> Breathing;
         
         private ManualLogSource _logger;
-        private List<UIelement> _customColorElements = new List<UIelement>();
-        private OpCheckBox _chkCustom;
 
         public RedMimicOptions(BaseUnityPlugin plugin, ManualLogSource logger)
         {
@@ -142,8 +140,6 @@ namespace RedPolePlantMod
                 
                 OpTab opTab = new OpTab(this, "Settings");
                 this.Tabs = new OpTab[] { opTab };
-                
-                _customColorElements.Clear();
 
                 float leftX = 30f;
                 float rightX = 320f;
@@ -156,10 +152,10 @@ namespace RedPolePlantMod
                 OpLabel lblSimple = new OpLabel(leftX + 30, modeY, "Simple Highlight (Subtle Red Tint)");
                 
                 float customModeY = modeY - 40f;
-                _chkCustom = new OpCheckBox(UseCustomColors, new Vector2(leftX, customModeY));
+                OpCheckBox chkCustom = new OpCheckBox(UseCustomColors, new Vector2(leftX, customModeY));
                 OpLabel lblCustom = new OpLabel(leftX + 30, customModeY, "Advanced Customization (Overrides Simple Highlight)");
 
-                opTab.AddItems(title, chkSimple, lblSimple, _chkCustom, lblCustom);
+                opTab.AddItems(title, chkSimple, lblSimple, chkCustom, lblCustom);
 
                 float customY = customModeY - 40f;
                 
@@ -173,6 +169,7 @@ namespace RedPolePlantMod
                 OpLabel lblPoleInt = new OpLabel(leftX, poleY - 190, "Intensity:");
                 OpSlider sldPole = new OpSlider(PoleIntensity, new Vector2(leftX, poleY - 220), 100);
 
+                // Leaf
                 float leafY = customY - 60f;
                 OpLabel lblLeafTitle = new OpLabel(rightX, leafY + 30, "Leaf Settings");
                 OpLabel lblLeafColor = new OpLabel(rightX, leafY, "Color:");
@@ -180,33 +177,17 @@ namespace RedPolePlantMod
                 OpLabel lblLeafInt = new OpLabel(rightX, leafY - 190, "Intensity:");
                 OpSlider sldLeaf = new OpSlider(LeafIntensity, new Vector2(rightX, leafY - 220), 100);
 
-                UIelement[] customElements = new UIelement[] {
+                opTab.AddItems(
                     chkBreath, lblBreath,
                     lblPoleTitle, lblPoleColor, pkPole, lblPoleInt, sldPole,
                     lblLeafTitle, lblLeafColor, pkLeaf, lblLeafInt, sldLeaf
-                };
-                
-                _customColorElements.AddRange(customElements);
-                opTab.AddItems(customElements);
+                );
                 
                 _logger.LogInfo("RedMimicOptions: UI Initialize finished.");
             }
             catch (System.Exception ex)
             {
                 _logger.LogError("RedMimicOptions: UI Initialize Failed! " + ex);
-            }
-        }
-
-        public override void Update()
-        {
-            base.Update();
-            if (_chkCustom != null && _customColorElements != null)
-            {
-                bool show = UseCustomColors.Value;
-                foreach (var item in _customColorElements)
-                {
-                    if (show) item.Show(); else item.Hide();
-                }
             }
         }
     }
