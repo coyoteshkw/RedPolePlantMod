@@ -2,8 +2,9 @@ using BepInEx;
 using BepInEx.Logging;
 using System.Security.Permissions;
 using UnityEngine;
+using Menu.Remix.MixedUI;
+using RWCustom;
 
-// Allows access to private members
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618
@@ -13,66 +14,157 @@ namespace RedPolePlantMod
     [BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.0")]
     public class RedMimic : BaseUnityPlugin
     {
-        // OnEnable 相当于 Vue 的 mounted()，在 Mod 加载完成时执行
+        public static RedMimicOptions Options;
+        private bool _initialized = false;
+
         public void OnEnable()
         {
-            // 监听日志，确定 Mod 加载成功
-            Logger.LogInfo("拟态草高亮 Mod 已加载！");
-
-            // 注册钩子 (Hook)
-            // 意思：当游戏要运行 PoleMimicGraphics 类的 DrawSprites 方法时，先问问我
+            Logger.LogInfo("RedMimic: OnEnable called.");
+            On.RainWorld.OnModsInit += RainWorld_OnModsInit;
             On.PoleMimicGraphics.DrawSprites += PoleMimicGraphics_DrawSprites;
         }
 
-        // 这是我们的自定义逻辑
-        // orig: 原始的方法（你可以选择调用它，或者完全屏蔽它）
-        // self: 当前这根拟态草的实例（相当于 this）
-        // sLeaser: 负责管理图像精灵的容器
+        private void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
+        {
+            try
+            {
+                orig(self);
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError("RedMimic: Error in orig(self) OnModsInit: " + ex);
+            }
+
+            if (_initialized) return;
+            _initialized = true;
+
+            Logger.LogInfo("RedMimic: Initializing Options...");
+
+            try
+            {
+                Options = new RedMimicOptions(this, Logger);
+                MachineConnector.SetRegisteredOI("com.coyoteshkw.RedPolePlantMod", Options);
+                Logger.LogInfo("RedMimic: Successfully registered options with MachineConnector.");
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError("RedMimic: Failed to register options: " + ex);
+            }
+        }
+
         private void PoleMimicGraphics_DrawSprites(On.PoleMimicGraphics.orig_DrawSprites orig, PoleMimicGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
-            // 1. 先让原版游戏把草画出来（计算位置、形状、原本的颜色）
             orig(self, sLeaser, rCam, timeStacker, camPos);
 
-            // 2. 修改颜色
-            // 拟态草主要由 sprites[0] 构成杆子主体
-            if (sLeaser.sprites != null && sLeaser.sprites.Length > 0)
+            if (sLeaser.sprites == null || sLeaser.sprites.Length == 0) return;
+            if (Options == null) return;
+
+            try
             {
-                // 将颜色强制设为红色
-                // sLeaser.sprites[0].color = Color.red;
+                bool breathing = Options.Breathing.Value;
+                
+                float breathFactor = 1f;
+                if (breathing)
+                {
+                    breathFactor = (Mathf.Sin(Time.time * 3f) + 1f) * 0.5f * 0.5f + 0.5f; 
+                }
 
-                // 进阶：如果你想让它在黑暗中发光（无视光照），取消下面这行的注释
-                // sLeaser.sprites[0].shader = rCam.game.rainWorld.Shaders["Basic"];
+                float poleMix = Options.PoleIntensity.Value / 100f;
+                if (poleMix > 0.01f)
+                {
+                    Color original = sLeaser.sprites[0].color;
+                    Color target = Options.PoleColor.Value;
+                    sLeaser.sprites[0].color = Color.Lerp(original, target, poleMix * breathFactor);
+                }
 
-				// == 方案1: 降低红色颜色
-				// 获取游戏原本计算出的伪装色
-				// Color originalColor = sLeaser.sprites[0].color;
-				
-				// 并不是变成纯红，而是保留 60% 原色，混合 40% 的暗红色
-				// Color.Lerp(颜色A, 颜色B, B的比例 0.0-1.0)
-				// sLeaser.sprites[1].color = Color.Lerp(originalColor, new Color(0.8f, 0.2f, 0.2f), 0.4f);
+                float leafMix = Options.LeafIntensity.Value / 100f;
+                if (leafMix > 0.01f && sLeaser.sprites.Length > 1)
+                {
+                    Color leafTarget = Options.LeafColor.Value;
+                    for (int i = 1; i < sLeaser.sprites.Length; i++)
+                    {
+                        Color original = sLeaser.sprites[i].color;
+                        sLeaser.sprites[i].color = Color.Lerp(original, leafTarget, leafMix * breathFactor);
+                    }
+                }
+            }
+            catch (System.Exception) {}
+        }
+    }
 
-				// == 方案2: 呼吸灯效果
-				// 计算呼吸因子：产生一个在 0.0 到 0.5 之间循环的数值
-				// Time.time * 3f 控制速度（数字越大呼吸越快）
-				// float pulse = (Mathf.Sin(Time.time * 3f) + 1f) / 4f; 
+    public class RedMimicOptions : OptionInterface
+    {
+        public readonly Configurable<Color> PoleColor;
+        public readonly Configurable<int> PoleIntensity;
+        public readonly Configurable<Color> LeafColor;
+        public readonly Configurable<int> LeafIntensity;
+        public readonly Configurable<bool> Breathing;
+        
+        private ManualLogSource _logger;
 
-				// 让它在“原色”和“亮橙色”之间循环
-				// sLeaser.sprites[0].color = Color.Lerp(sLeaser.sprites[0].color, new Color(1f, 0.5f, 0f), pulse);
+        public RedMimicOptions(BaseUnityPlugin plugin, ManualLogSource logger)
+        {
+            _logger = logger;
+            _logger.LogInfo("RedMimicOptions: Constructor started.");
+            
+            // 默认值
+            PoleColor = config.Bind("CfgPoleColor", new Color(1f, 0.2f, 0.2f), new ConfigurableInfo("Pole Target Color"));
+            PoleIntensity = config.Bind("CfgPoleInt", 30, new ConfigurableInfo("Pole Intensity (%)", new ConfigAcceptableRange<int>(0, 100)));
+            LeafColor = config.Bind("CfgLeafColor", new Color(1f, 0.2f, 0.6f), new ConfigurableInfo("Leaf Target Color"));
+            LeafIntensity = config.Bind("CfgLeafInt", 90, new ConfigurableInfo("Leaf Intensity (%)", new ConfigAcceptableRange<int>(0, 100)));
+            Breathing = config.Bind("CfgBreath", true, new ConfigurableInfo("Enable Breathing Effect"));
+            
+            _logger.LogInfo("RedMimicOptions: Constructor finished.");
+        }
 
-				// == 方案3: 让叶子变红
-				// 遍历所有 sprite
-				for (int i = 0; i < sLeaser.sprites.Length; i++)
-				{
-					// i == 0 是杆子本体，我们决定不改它，让它完美伪装
-					if (i == 0) continue;
+        public override void Initialize()
+        {
+            try 
+            {
+                _logger.LogInfo("RedMimicOptions: Initialize UI started.");
+                base.Initialize();
+                
+                OpTab opTab = new OpTab(this, "Settings");
+                this.Tabs = new OpTab[] { opTab };
 
-					// i > 0 的通常是杆子上的叶子/倒刺装饰
-					// 把叶子改成鲜艳的“警告色”，比如亮紫色或深红
-					sLeaser.sprites[i].color = new Color(1f, 0.2f, 0.4f); 
-					
-					// 可选：让叶子不受光照影响，像霓虹灯一样亮
-					// sLeaser.sprites[i].shader = rCam.game.rainWorld.Shaders["Basic"];
-				}
+                // 简单的布局，防止过于复杂导致渲染失败
+                float leftX = 30f;
+                float rightX = 320f;
+                float topY = 550f;
+                
+                OpLabel title = new OpLabel(leftX, topY, "Red Mimic Configuration", true);
+                
+                OpCheckBox chkBreath = new OpCheckBox(Breathing, new Vector2(leftX, topY - 40));
+                OpLabel lblBreath = new OpLabel(leftX + 30, topY - 40, "Enable Breathing Effect");
+
+                // Pole
+                float poleY = 400f;
+                OpLabel lblPoleTitle = new OpLabel(leftX, poleY + 30, "Pole Settings");
+                OpLabel lblPoleColor = new OpLabel(leftX, poleY, "Color:");
+                OpColorPicker pkPole = new OpColorPicker(PoleColor, new Vector2(leftX, poleY - 160));
+                OpLabel lblPoleInt = new OpLabel(leftX, poleY - 190, "Intensity:");
+                OpSlider sldPole = new OpSlider(PoleIntensity, new Vector2(leftX, poleY - 220), 100);
+
+                // Leaf
+                float leafY = 400f;
+                OpLabel lblLeafTitle = new OpLabel(rightX, leafY + 30, "Leaf Settings");
+                OpLabel lblLeafColor = new OpLabel(rightX, leafY, "Color:");
+                OpColorPicker pkLeaf = new OpColorPicker(LeafColor, new Vector2(rightX, leafY - 160));
+                OpLabel lblLeafInt = new OpLabel(rightX, leafY - 190, "Intensity:");
+                OpSlider sldLeaf = new OpSlider(LeafIntensity, new Vector2(rightX, leafY - 220), 100);
+
+                opTab.AddItems(
+                    title,
+                    chkBreath, lblBreath,
+                    lblPoleTitle, lblPoleColor, pkPole, lblPoleInt, sldPole,
+                    lblLeafTitle, lblLeafColor, pkLeaf, lblLeafInt, sldLeaf
+                );
+                
+                _logger.LogInfo("RedMimicOptions: UI Initialize finished.");
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError("RedMimicOptions: UI Initialize Failed! " + ex);
             }
         }
     }
