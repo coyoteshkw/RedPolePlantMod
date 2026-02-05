@@ -10,9 +10,9 @@ using System.Collections.Generic;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618
 
-namespace RedPolePlantMod
+namespace MoreVisiblePolePlants
 {
-    [BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.2")]
+    [BepInPlugin("coyoteshkw.MoreVisiblePolePlants", "More Visible Pole Plants", "0.1.2")]
     public class RedMimic : BaseUnityPlugin
     {
         public static RedMimicOptions Options;
@@ -44,7 +44,7 @@ namespace RedPolePlantMod
             try
             {
                 Options = new RedMimicOptions(this, Logger);
-                MachineConnector.SetRegisteredOI("com.coyoteshkw.RedPolePlantMod", Options);
+                MachineConnector.SetRegisteredOI("coyoteshkw.MoreVisiblePolePlants", Options);
                 Logger.LogInfo("RedMimic: Successfully registered options with MachineConnector.");
             }
             catch (System.Exception ex)
@@ -158,7 +158,7 @@ namespace RedPolePlantMod
             PoleIntensity = config.Bind("CfgPoleInt", 30, new ConfigurableInfo("Pole Intensity (%)", new ConfigAcceptableRange<int>(0, 100)));
             LeafColor = config.Bind("CfgLeafColor", new Color(1f, 0.2f, 0.6f), new ConfigurableInfo("Leaf Target Color"));
             LeafIntensity = config.Bind("CfgLeafInt", 90, new ConfigurableInfo("Leaf Intensity (%)", new ConfigAcceptableRange<int>(0, 100)));
-            Breathing = config.Bind("CfgBreath", true, new ConfigurableInfo("Enable Breathing Effect"));
+            Breathing = config.Bind("CfgBreath", false, new ConfigurableInfo("Enable Breathing Effect"));
             
             _logger.LogInfo("RedMimicOptions: Constructor finished.");
         }

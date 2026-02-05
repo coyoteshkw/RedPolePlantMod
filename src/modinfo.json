@@ -1,8 +1,8 @@
 {
-    "id": "com.coyoteshkw.RedPolePlantMod",
-    "name": "Red Pole Plant Mod",
+    "id": "coyoteshkw.MoreVisiblePolePlants",
+    "name": "More Visible Pole Plants",
     "version": "0.1.2",
-    "authors": "Coyote",
-    "description": "Makes Pole Mimics visible and configurable. Now with RGB Rainbow mode!",
+    "authors": "coyoteshkw",
+    "description": "A mod that make pole plants more visible(or fancy)",
     "requirements": []
 }
