@@ -12,7 +12,7 @@ using System.Collections.Generic;
 
 namespace RedPolePlantMod
 {
-    [BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.1")]
+    [BepInPlugin("com.coyoteshkw.RedPolePlantMod", "RedPolePlantMod", "0.1.2")]
     public class RedMimic : BaseUnityPlugin
     {
         public static RedMimicOptions Options;
@@ -71,18 +71,43 @@ namespace RedPolePlantMod
                         breathFactor = (Mathf.Sin(Time.time * 3f) + 1f) * 0.5f * 0.5f + 0.5f; 
                     }
 
+                    // --- Pole Logic ---
                     float poleMix = Options.PoleIntensity.Value / 100f;
                     if (poleMix > 0.01f)
                     {
                         Color original = sLeaser.sprites[0].color;
-                        Color target = Options.PoleColor.Value;
+                        Color target;
+                        
+                        // 如果启用了炫彩模式，覆盖目标颜色
+                        if (Options.RainbowPole.Value)
+                        {
+                            // HSV 循环：色相(Hue) 随时间变化
+                            target = Color.HSVToRGB(Mathf.Repeat(Time.time * 1.5f, 1f), 1f, 1f);
+                        }
+                        else
+                        {
+                            target = Options.PoleColor.Value;
+                        }
+
                         sLeaser.sprites[0].color = Color.Lerp(original, target, poleMix * breathFactor);
                     }
 
+                    // --- Leaf Logic ---
                     float leafMix = Options.LeafIntensity.Value / 100f;
                     if (leafMix > 0.01f && sLeaser.sprites.Length > 1)
                     {
-                        Color leafTarget = Options.LeafColor.Value;
+                        Color leafTarget;
+
+                        if (Options.RainbowLeaves.Value)
+                        {
+                            // HSV 循环：色相(Hue) 随时间变化，且增加偏移量 (0.4f)，避免与杆子颜色同步
+                            leafTarget = Color.HSVToRGB(Mathf.Repeat(Time.time * 1.5f + 0.4f, 1f), 1f, 1f);
+                        }
+                        else
+                        {
+                            leafTarget = Options.LeafColor.Value;
+                        }
+
                         for (int i = 1; i < sLeaser.sprites.Length; i++)
                         {
                             Color original = sLeaser.sprites[i].color;
@@ -106,6 +131,10 @@ namespace RedPolePlantMod
         public readonly Configurable<bool> UseSimpleHighlight;
         public readonly Configurable<bool> UseCustomColors;
         
+        // Rainbow Modes
+        public readonly Configurable<bool> RainbowPole;
+        public readonly Configurable<bool> RainbowLeaves;
+
         public readonly Configurable<Color> PoleColor;
         public readonly Configurable<int> PoleIntensity;
         public readonly Configurable<Color> LeafColor;
@@ -121,6 +150,9 @@ namespace RedPolePlantMod
             
             UseSimpleHighlight = config.Bind("CfgUseSimpleHighlight", true, new ConfigurableInfo("Enable simple highlight (subtle tint)."));
             UseCustomColors = config.Bind("CfgUseCustomColors", false, new ConfigurableInfo("Enable advanced custom color configuration."));
+
+            RainbowPole = config.Bind("CfgRainbowPole", false, new ConfigurableInfo("Cycle through RGB colors for the pole."));
+            RainbowLeaves = config.Bind("CfgRainbowLeaves", false, new ConfigurableInfo("Cycle through RGB colors for the leaves."));
 
             PoleColor = config.Bind("CfgPoleColor", new Color(1f, 0.2f, 0.2f), new ConfigurableInfo("Pole Target Color"));
             PoleIntensity = config.Bind("CfgPoleInt", 30, new ConfigurableInfo("Pole Intensity (%)", new ConfigAcceptableRange<int>(0, 100)));
@@ -162,25 +194,36 @@ namespace RedPolePlantMod
                 OpCheckBox chkBreath = new OpCheckBox(Breathing, new Vector2(leftX, customY));
                 OpLabel lblBreath = new OpLabel(leftX + 30, customY, "Enable Breathing Effect");
                 
+                // Pole Section
                 float poleY = customY - 60f;
                 OpLabel lblPoleTitle = new OpLabel(leftX, poleY + 30, "Pole Settings");
-                OpLabel lblPoleColor = new OpLabel(leftX, poleY, "Color:");
-                OpColorPicker pkPole = new OpColorPicker(PoleColor, new Vector2(leftX, poleY - 160));
-                OpLabel lblPoleInt = new OpLabel(leftX, poleY - 190, "Intensity:");
-                OpSlider sldPole = new OpSlider(PoleIntensity, new Vector2(leftX, poleY - 220), 100);
+                
+                // Rainbow Toggle for Pole
+                OpCheckBox chkRainbowPole = new OpCheckBox(RainbowPole, new Vector2(leftX, poleY));
+                OpLabel lblRainbowPole = new OpLabel(leftX + 30, poleY, "RGB Rainbow Mode");
 
-                // Leaf
+                OpLabel lblPoleColor = new OpLabel(leftX, poleY - 30, "Color (Ignored if Rainbow):");
+                OpColorPicker pkPole = new OpColorPicker(PoleColor, new Vector2(leftX, poleY - 190));
+                OpLabel lblPoleInt = new OpLabel(leftX, poleY - 220, "Intensity:");
+                OpSlider sldPole = new OpSlider(PoleIntensity, new Vector2(leftX, poleY - 250), 100);
+
+                // Leaf Section
                 float leafY = customY - 60f;
                 OpLabel lblLeafTitle = new OpLabel(rightX, leafY + 30, "Leaf Settings");
-                OpLabel lblLeafColor = new OpLabel(rightX, leafY, "Color:");
-                OpColorPicker pkLeaf = new OpColorPicker(LeafColor, new Vector2(rightX, leafY - 160));
-                OpLabel lblLeafInt = new OpLabel(rightX, leafY - 190, "Intensity:");
-                OpSlider sldLeaf = new OpSlider(LeafIntensity, new Vector2(rightX, leafY - 220), 100);
+
+                // Rainbow Toggle for Leaf
+                OpCheckBox chkRainbowLeaf = new OpCheckBox(RainbowLeaves, new Vector2(rightX, leafY));
+                OpLabel lblRainbowLeaf = new OpLabel(rightX + 30, leafY, "RGB Rainbow Mode");
+
+                OpLabel lblLeafColor = new OpLabel(rightX, leafY - 30, "Color (Ignored if Rainbow):");
+                OpColorPicker pkLeaf = new OpColorPicker(LeafColor, new Vector2(rightX, leafY - 190));
+                OpLabel lblLeafInt = new OpLabel(rightX, leafY - 220, "Intensity:");
+                OpSlider sldLeaf = new OpSlider(LeafIntensity, new Vector2(rightX, leafY - 250), 100);
 
                 opTab.AddItems(
                     chkBreath, lblBreath,
-                    lblPoleTitle, lblPoleColor, pkPole, lblPoleInt, sldPole,
-                    lblLeafTitle, lblLeafColor, pkLeaf, lblLeafInt, sldLeaf
+                    lblPoleTitle, chkRainbowPole, lblRainbowPole, lblPoleColor, pkPole, lblPoleInt, sldPole,
+                    lblLeafTitle, chkRainbowLeaf, lblRainbowLeaf, lblLeafColor, pkLeaf, lblLeafInt, sldLeaf
                 );
                 
                 _logger.LogInfo("RedMimicOptions: UI Initialize finished.");
