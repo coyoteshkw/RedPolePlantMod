@@ -401,3 +401,5 @@ FodyWeavers.xsd
 # Ignore mod output
 mod/plugins/
 mod/newest/plugins/
+
+*/CODE_DOCUMENTATION.md

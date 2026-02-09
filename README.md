@@ -1,24 +1,32 @@
-# Rain World code mod template
+# More Visible Pole Plant / 更明显的拟态草
 
-## Usage
-Use this template on GitHub or just [download the code](https://github.com/alduris/TemplateMod/archive/refs/heads/master.zip), whichever is easiest.
+Spotting a **Pole Plant** on a Steam Deck OLED (especially with the etched glass/matte screen) can be a nightmare. After several near-heart attacks from being "pole-bushed," I decided to create this mod to make survival a bit more manageable.
 
-Rename `src/TestMod.csproj`, then edit `mod/modinfo.json` and `src/Plugin.cs` to customize your mod.
+This mod allows you to customize the appearance of Pole Plants so you can actually see them before it's too late.
 
-See [the modding wiki](https://rainworldmodding.miraheze.org/wiki/Mod_Directories) for `modinfo.json` documentation.
+## **Features & Options:**
 
-To update your mod to work in future updates, replace `PUBLIC-Assembly-CSharp.dll` and `HOOKS-Assembly-CSharp.dll` with the equivalents found in `Rain World/BepInEx/utils` and `Rain World/BepInEx/plugins` as well as `Assembly-CSharp-firstpass.dll` found in `Rain World/RainWorld_Data/Managed`.
+1. **Simple Mode:** Adds a subtle 30% red tint to every Pole Plant. It keeps the game's atmosphere while making them stand out just enough.
+2. **Advanced Customization:** Fully define the colors for both the **poles** and **leaves** using an in-game color picker. Includes a "Breathing" effect for that eerie, living vibe.
+3. **RGB Disco Mode:** Cycles through the full spectrum of colors. Turn the wasteland into a dance floor and add a touch of comedy to your inevitable demise.
 
-If you wish to add any other reference .dll files, copy them into the `lib` folder and strip them (using a tool such as [NStrip](https://github.com/bbepis/NStrip)).
+## **Compatibility & Performance:**
 
-## License
-This template is licensed under CC0, the full text of which can be found here: https://creativecommons.org/public-domain/cc0/
+- **Multiplayer:** Tested in **Rain Meadow** with friends—works perfectly fine!
+- **Performance:** This is a lightweight mod with negligible impact on your FPS.
 
-In a nutshell, this means:
-- You can do pretty much whatever you want with this template
-- I am not responsible for what you do with this template
-- There are no warranties expressed or implied
+**Note:** This mod was primarily created for my personal enjoyment and better visibility on handheld. While it hasn't undergone "industrial-grade" testing, I'm sharing it here in case anyone else finds it helpful. Use it, have fun, and stay alive!️
 
-You do not have to license your code under CC0 though! (Though it would be cool if you did.) Feel free to license your code however you wish, or not at all.
+---
+ 
+在SteamDeck Oled磨砂屏上看出一根拟态草太困难了，为了不把自己吓出心脏病来我做了这个mod，方便识别。
 
-**DISCLAIMER**: Any and all reference .dll files included (in the `lib` folder) are NOT covered under CC0! They are protected by copyright under their original owners. The actual code in the .dll files has been stripped so they serve no purpose other than for compiler reference (hopefully alleviating most legal issues this would otherwise cause), but this is expected to be upheld by you, the person using this template! Any reference .dlls you may add should be stripped before pushing to any public repository! And if it is possible to get code from Nuget instead, I recommend you do that instead of adding the dll here.
+提供三种选项：
+
+1. 简单模式。只是简单地在每根拟态草上添加30%的红色混色，让拟态草看起来更明显
+2. 高级自定义。你可以通过色板随心定义拟态草的颜色，包括杆子和叶子，支持呼吸灯效果。
+3. RGB灯效循环，让你仿佛进入迪厅，为死亡添加一点喜剧色彩
+
+我在和朋友雨甸联机时使用了，目前没有问题，这只是一个小mod，性能开销很小
+
+**注意：** 我还没有经过特别详尽的测试，因为这主要是为了我的个人体验和好玩，但我假设也有人需要它所以上传
